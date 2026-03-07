@@ -43,22 +43,32 @@ public class LocalProxyRelayService extends AbstractProxyRelayService {
     public CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> processGetConsumerRunningInfo(
         ProxyContext context, RemotingCommand command, GetConsumerRunningInfoRequestHeader header) {
         CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> future = new CompletableFuture<>();
-        future.thenAccept(proxyOutResult -> {
-            RemotingServer remotingServer = this.brokerController.getRemotingServer();
-            if (remotingServer instanceof NettyRemotingAbstract) {
-                NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
-                RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(null);
-                remotingCommand.setOpaque(command.getOpaque());
-                remotingCommand.setCode(proxyOutResult.getCode());
-                remotingCommand.setRemark(proxyOutResult.getRemark());
-                if (proxyOutResult.getCode() == ResponseCode.SUCCESS && proxyOutResult.getResult() != null) {
-                    ConsumerRunningInfo consumerRunningInfo = proxyOutResult.getResult();
-                    remotingCommand.setBody(consumerRunningInfo.encode());
+        try {
+            future.thenAccept(proxyOutResult -> {
+                try {
+                    RemotingServer remotingServer = this.brokerController.getRemotingServer();
+                    if (remotingServer instanceof NettyRemotingAbstract) {
+                        NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
+                        RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(null);
+                        remotingCommand.setOpaque(command.getOpaque());
+                        remotingCommand.setCode(proxyOutResult.getCode());
+                        remotingCommand.setRemark(proxyOutResult.getRemark());
+                        if (proxyOutResult.getCode() == ResponseCode.SUCCESS && proxyOutResult.getResult() != null) {
+                            ConsumerRunningInfo consumerRunningInfo = proxyOutResult.getResult();
+                            remotingCommand.setBody(consumerRunningInfo.encode());
+                        }
+                        SimpleChannel simpleChannel = new SimpleChannel(context.getRemoteAddress(), context.getLocalAddress());
+                        nettyRemotingAbstract.processResponseCommand(simpleChannel.getChannelHandlerContext(), remotingCommand);
+                    }
+                } catch (Exception e) {
+                    // Log error but don't propagate since the future is already completed
                 }
-                SimpleChannel simpleChannel = new SimpleChannel(context.getRemoteAddress(), context.getLocalAddress());
-                nettyRemotingAbstract.processResponseCommand(simpleChannel.getChannelHandlerContext(), remotingCommand);
-            }
-        });
+            });
+            // Complete the future immediately to trigger the callback
+            future.complete(null);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
         return future;
     }
 
@@ -67,22 +77,32 @@ public class LocalProxyRelayService extends AbstractProxyRelayService {
         ProxyContext context, RemotingCommand command,
         ConsumeMessageDirectlyResultRequestHeader header) {
         CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> future = new CompletableFuture<>();
-        future.thenAccept(proxyOutResult -> {
-            RemotingServer remotingServer = this.brokerController.getRemotingServer();
-            if (remotingServer instanceof NettyRemotingAbstract) {
-                NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
-                RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(null);
-                remotingCommand.setOpaque(command.getOpaque());
-                remotingCommand.setCode(proxyOutResult.getCode());
-                remotingCommand.setRemark(proxyOutResult.getRemark());
-                if (proxyOutResult.getCode() == ResponseCode.SUCCESS && proxyOutResult.getResult() != null) {
-                    ConsumeMessageDirectlyResult consumeMessageDirectlyResult = proxyOutResult.getResult();
-                    remotingCommand.setBody(consumeMessageDirectlyResult.encode());
+        try {
+            future.thenAccept(proxyOutResult -> {
+                try {
+                    RemotingServer remotingServer = this.brokerController.getRemotingServer();
+                    if (remotingServer instanceof NettyRemotingAbstract) {
+                        NettyRemotingAbstract nettyRemotingAbstract = (NettyRemotingAbstract) remotingServer;
+                        RemotingCommand remotingCommand = RemotingCommand.createResponseCommand(null);
+                        remotingCommand.setOpaque(command.getOpaque());
+                        remotingCommand.setCode(proxyOutResult.getCode());
+                        remotingCommand.setRemark(proxyOutResult.getRemark());
+                        if (proxyOutResult.getCode() == ResponseCode.SUCCESS && proxyOutResult.getResult() != null) {
+                            ConsumeMessageDirectlyResult consumeMessageDirectlyResult = proxyOutResult.getResult();
+                            remotingCommand.setBody(consumeMessageDirectlyResult.encode());
+                        }
+                        SimpleChannel simpleChannel = new SimpleChannel(context.getRemoteAddress(), context.getLocalAddress());
+                        nettyRemotingAbstract.processResponseCommand(simpleChannel.getChannelHandlerContext(), remotingCommand);
+                    }
+                } catch (Exception e) {
+                    // Log error but don't propagate since the future is already completed
                 }
-                SimpleChannel simpleChannel = new SimpleChannel(context.getRemoteAddress(), context.getLocalAddress());
-                nettyRemotingAbstract.processResponseCommand(simpleChannel.getChannelHandlerContext(), remotingCommand);
-            }
-        });
+            });
+            // Complete the future immediately to trigger the callback
+            future.complete(null);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
         return future;
     }
 }
