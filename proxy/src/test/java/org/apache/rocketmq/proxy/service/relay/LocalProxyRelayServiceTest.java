@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.service.relay;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.service.transaction.TransactionService;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
@@ -98,5 +99,41 @@ public class LocalProxyRelayServiceTest {
         assertThat(remotingCommand1.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(remotingCommand1.getRemark()).isEqualTo(remark);
         assertThat(remotingCommand1.getBody()).isEqualTo(result.encode());
+    }
+
+    @Test
+    public void testProcessGetConsumerRunningInfoWithException() {
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO, null);
+        GetConsumerRunningInfoRequestHeader requestHeader = new GetConsumerRunningInfoRequestHeader();
+        CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> future =
+            localProxyRelayService.processGetConsumerRunningInfo(ProxyContext.create(), remotingCommand, requestHeader);
+        future.completeExceptionally(new RuntimeException("relay error"));
+        Mockito.verify(nettyRemotingServerMock, Mockito.never())
+            .processResponseCommand(Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void testProcessConsumeMessageDirectlyWithException() {
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.CONSUME_MESSAGE_DIRECTLY, null);
+        ConsumeMessageDirectlyResultRequestHeader requestHeader = new ConsumeMessageDirectlyResultRequestHeader();
+        CompletableFuture<ProxyRelayResult<ConsumeMessageDirectlyResult>> future =
+            localProxyRelayService.processConsumeMessageDirectly(ProxyContext.create(), remotingCommand, requestHeader);
+        future.completeExceptionally(new RuntimeException("relay error"));
+        Mockito.verify(nettyRemotingServerMock, Mockito.never())
+            .processResponseCommand(Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void testProcessGetConsumerRunningInfoWithNonNettyRemotingServer() {
+        RemotingServer nonNettyServer = Mockito.mock(RemotingServer.class);
+        Mockito.when(brokerControllerMock.getRemotingServer()).thenReturn(nonNettyServer);
+        ConsumerRunningInfo runningInfo = new ConsumerRunningInfo();
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUMER_RUNNING_INFO, null);
+        GetConsumerRunningInfoRequestHeader requestHeader = new GetConsumerRunningInfoRequestHeader();
+        CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> future =
+            localProxyRelayService.processGetConsumerRunningInfo(ProxyContext.create(), remotingCommand, requestHeader);
+        future.complete(new ProxyRelayResult<>(ResponseCode.SUCCESS, "ok", runningInfo));
+        Mockito.verify(nettyRemotingServerMock, Mockito.never())
+            .processResponseCommand(Mockito.any(), Mockito.any());
     }
 }
