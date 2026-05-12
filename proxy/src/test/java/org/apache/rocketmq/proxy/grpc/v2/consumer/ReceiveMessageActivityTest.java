@@ -45,6 +45,7 @@ import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
@@ -64,6 +65,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -78,6 +80,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
     protected static final String BROKER_ADDR = "127.0.0.1:10911";
     private static final String TOPIC = "topic";
     private static final String CONSUMER_GROUP = "consumerGroup";
+    private static final String LITE_TOPIC = "liteTopic";
     private ReceiveMessageActivity receiveMessageActivity;
 
     @Before
@@ -245,6 +248,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         messageExt1.setTopic(TOPIC);
         messageExt1.setMsgId(msgId1);
         MessageAccessor.putProperty(messageExt1, MessageConst.PROPERTY_POP_CK, popCk1);
+        MessageAccessor.putProperty(messageExt1, MessageConst.PROPERTY_LITE_TOPIC, LITE_TOPIC);
         messageExt1.setBody("body1".getBytes());
         MessageExt messageExt2 = new MessageExt();
         String msgId2 = "msgId2";
@@ -252,6 +256,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         messageExt2.setTopic(TOPIC);
         messageExt2.setMsgId(msgId2);
         MessageAccessor.putProperty(messageExt2, MessageConst.PROPERTY_POP_CK, popCk2);
+        MessageAccessor.putProperty(messageExt2, MessageConst.PROPERTY_LITE_TOPIC, LITE_TOPIC);
         messageExt2.setBody("body2".getBytes());
         PopResult popResult = new PopResult(PopStatus.FOUND, Arrays.asList(messageExt1, messageExt2));
         when(this.messagingProcessor.popMessage(
@@ -284,6 +289,8 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         // normal
         ProxyContext ctx = createContext();
         this.grpcChannelManager.createChannel(ctx, ctx.getClientID());
+        ArgumentCaptor<MessageReceiptHandle> messageReceiptHandleCaptor =
+            ArgumentCaptor.forClass(MessageReceiptHandle.class);
         ReceiveMessageRequest receiveMessageRequest = ReceiveMessageRequest.newBuilder()
             .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
             .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
@@ -301,6 +308,10 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             anyString(),
             anyString(),
             anyLong());
+        verify(this.messagingProcessor, times(2)).addReceiptHandle(any(), any(), eq(CONSUMER_GROUP), anyString(),
+            messageReceiptHandleCaptor.capture());
+        assertEquals(Arrays.asList(LITE_TOPIC, LITE_TOPIC), messageReceiptHandleCaptor.getAllValues().stream()
+            .map(MessageReceiptHandle::getLiteTopic).collect(Collectors.toList()));
 
         // abnormal
         this.grpcChannelManager.removeChannel(ctx.getClientID());

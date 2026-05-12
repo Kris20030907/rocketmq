@@ -206,7 +206,7 @@ public class ConsumerProcessor extends AbstractProcessor {
                                     consumerGroup,
                                     topic,
                                     MessagingProcessor.INVISIBLE_TIME_MS,
-                                    null,
+                                    liteTopic,
                                     MessagingProcessor.DEFAULT_TIMEOUT_MILLS,
                                     true);
                             break;

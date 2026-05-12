@@ -137,7 +137,7 @@ public class ReceiveMessageResponseStreamWriter {
             request.getGroup().getName(),
             request.getMessageQueue().getTopic().getName(),
             NACK_INVISIBLE_TIME,
-            null,
+            messageExt.getProperty(MessageConst.PROPERTY_LITE_TOPIC),
             MessagingProcessor.DEFAULT_TIMEOUT_MILLS,
             true
         );

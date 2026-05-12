@@ -65,6 +65,7 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
 
     private static final String TOPIC = "topic";
     private static final String CONSUMER_GROUP = "consumerGroup";
+    private static final String LITE_TOPIC = "liteTopic";
     private ReceiveMessageResponseStreamWriter writer;
     private StreamObserver<ReceiveMessageResponse> streamObserver;
 
@@ -170,6 +171,7 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
                 changeInvisibleTimeSuspendCaptor.capture());
 
         MessageExt messageExt = createMessageExt(TOPIC, "tag");
+        MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_LITE_TOPIC, LITE_TOPIC);
         ReceiveMessageRequest receiveMessageRequest = ReceiveMessageRequest.newBuilder()
             .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
             .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
@@ -195,7 +197,7 @@ public class ReceiveMessageResponseStreamWriterTest extends BaseActivityTest {
         verify(this.messagingProcessor, times(1))
             .changeInvisibleTime(any(), any(), eq(messageExt.getMsgId()),
                 eq(CONSUMER_GROUP), eq(TOPIC), eq(ReceiveMessageResponseStreamWriter.NACK_INVISIBLE_TIME),
-                eq(null), eq(org.apache.rocketmq.proxy.processor.MessagingProcessor.DEFAULT_TIMEOUT_MILLS),
+                eq(LITE_TOPIC), eq(org.apache.rocketmq.proxy.processor.MessagingProcessor.DEFAULT_TIMEOUT_MILLS),
                 eq(true));
 
         assertEquals(messageExt.getMsgId(), changeInvisibleTimeMsgIdCaptor.getValue());

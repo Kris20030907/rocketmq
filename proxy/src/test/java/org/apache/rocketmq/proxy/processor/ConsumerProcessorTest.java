@@ -39,7 +39,9 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -82,6 +84,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
     private static final String CONSUMER_GROUP = "consumerGroup";
     private static final String TOPIC = "topic";
     private static final String CLIENT_ID = "clientId";
+    private static final String LITE_TOPIC = "liteTopic";
 
     private ConsumerProcessor consumerProcessor;
 
@@ -369,6 +372,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
 
         List<MessageExt> messageExtList = new ArrayList<>();
         messageExtList.add(createMessageExt(TOPIC, tag, 0, invisibleTime));
+        MessageAccessor.putProperty(messageExtList.get(0), MessageConst.PROPERTY_LITE_TOPIC, LITE_TOPIC);
         PopResult innerPopResult = new PopResult(PopStatus.FOUND, messageExtList);
         when(this.messageService.popMessage(any(), messageQueueArgumentCaptor.capture(), requestHeaderArgumentCaptor.capture(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(innerPopResult));
@@ -410,7 +414,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
 
         // Verify that changeInvisibleTime was called with suspend=true
         verify(this.messagingProcessor).changeInvisibleTime(any(), any(), eq(messageExtList.get(0).getMsgId()),
-            eq(CONSUMER_GROUP), eq(TOPIC), eq(Duration.ofSeconds(1).toMillis()), eq(null),
+            eq(CONSUMER_GROUP), eq(TOPIC), eq(Duration.ofSeconds(1).toMillis()), eq(LITE_TOPIC),
             eq(MessagingProcessor.DEFAULT_TIMEOUT_MILLS), eq(true));
 
         // Verify that the message was NOT added to the result list
